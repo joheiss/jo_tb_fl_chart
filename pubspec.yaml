@@ -1,6 +1,6 @@
 name: jo_tb_fl_chart
 description: A custom wrapper around a FL line chart to allow time based swiping and interval size changes.
-version: 0.1.29
+version: 0.1.38
 homepage: http://www.jovisco.com
 
 environment:
@@ -14,7 +14,7 @@ dependencies:
   fl_chart: ^0.12.2
   intl: ^0.16.1
   swipe_gesture_recognizer: ^0.0.2
-  provider: ^4.3.3
+  rxdart: ^0.25.0
 
 
 dev_dependencies:

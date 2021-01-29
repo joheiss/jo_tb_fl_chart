@@ -2,12 +2,11 @@ library jo_tb_fl_chart;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:swipe_gesture_recognizer/swipe_gesture_recognizer.dart';
-import 'chart_controller.dart';
+import 'chart_controller_rx.dart';
 
 class JOTimeBasedSwipingLineChart extends StatefulWidget {
-  final JOChartController controller;
+  final JOChartControllerRx controller;
   final Duration swapAnimationDuration;
   final List<Color> lineColors;
   final List<Color> belowChartColors;
@@ -78,38 +77,44 @@ class _JOTimeBasedSwipingLineChartState extends State<JOTimeBasedSwipingLineChar
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(right: 15.0, left: 5.0),
-              child: Consumer<JOChartController>(builder: (BuildContext context, controller, child) {
-               return LineChart(
-                  _buildLineChart(context, controller),
-                  swapAnimationDuration: widget.swapAnimationDuration,
-                );
-              }),
+              child: StreamBuilder<bool>(
+                stream: widget.controller.hasChanged,
+                builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                  return LineChart(
+                    _buildLineChart(context, widget.controller),
+                    swapAnimationDuration: widget.swapAnimationDuration,
+                  );
+                }
+              ),
             ),
           ),
         ],
       ),
     );
     if (widget.showLegend) {
-      children.add(Consumer<JOChartController>(builder: (BuildContext context, controller, child) {
-        return Container(
-          margin: EdgeInsets.only(top: 20.0),
-          alignment: Alignment.topCenter,
-          child: Text(
-            controller.legend,
-            style: widget.legendTextStyle,
-            textAlign: TextAlign.center,
-          ),
-        );
-      }));
-    }
-    return Consumer<JOChartController>(builder: (BuildContext context, controller, child) {
-      return Stack(
-        children: children,
+      children.add(
+        StreamBuilder<bool>(
+          stream: widget.controller.hasChanged,
+          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            return Container(
+              margin: EdgeInsets.only(top: 20.0),
+              alignment: Alignment.topCenter,
+              child: Text(
+                widget.controller.legend,
+                style: widget.legendTextStyle,
+                textAlign: TextAlign.center,
+              ),
+            );
+          },
+        ),
       );
-    });
+    }
+    return Stack(
+      children: children,
+    );
   }
 
-  LineChartData _buildLineChart(BuildContext context, JOChartController controller) {
+  LineChartData _buildLineChart(BuildContext context, JOChartControllerRx controller) {
     return LineChartData(
       backgroundColor: widget.backgroundColor,
       clipData: FlClipData.all(),

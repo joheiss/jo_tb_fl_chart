@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rxdart/rxdart.dart';
 
 import 'diagram_interval_model.dart';
 
@@ -11,7 +11,7 @@ class JODataPoint {
   JODataPoint(this.time, this.value);
 }
 
-class JOChartController extends ChangeNotifier {
+class JOChartControllerRx {
   List<JODataPoint> _allDatapoints;
   List<JODataPoint> _datapoints;
   int _start;
@@ -21,7 +21,9 @@ class JOChartController extends ChangeNotifier {
   double _upperBound;
   String _legend;
 
-  JOChartController(
+  final _hasChanged = BehaviorSubject<bool>();
+
+  JOChartControllerRx(
       {List<JODataPoint> datapoints,
       int size = 0,
       int start = 0,
@@ -41,6 +43,8 @@ class JOChartController extends ChangeNotifier {
     // print('(TRACE) JOChartController --> size: $_size, start: $_start, end: $_end');
     _datapoints = _allDatapoints.length > 0 ? _selectDataPointsForInterval() : <JODataPoint>[];
   }
+
+  Stream<bool> get hasChanged => _hasChanged;
 
   int get size => _size;
   set size(int milliseconds) {
@@ -119,13 +123,19 @@ class JOChartController extends ChangeNotifier {
   }
 
   int _getStepSize() {
-    int step = 1440;
-    if (_size <= JODiagramTimeInterval.second) step = 50;
-    else if (_size <= JODiagramTimeInterval.minute) step = 5 * 1000;
-    else if (_size <= JODiagramTimeInterval.hour) step = 5 * 60 * 1000;
-    else if (_size <= JODiagramTimeInterval.six_hours) step = 30 * 60 * 1000;
-    else if (_size <= JODiagramTimeInterval.twelve_hours) step = 30 * 60 * 1000;
-    else if (_size <= JODiagramTimeInterval.day) step = 60 * 60 * 1000;
+    int step = 1440 * 60 * 1000;
+    if (_size <= JODiagramTimeInterval.second)
+      step = 50;
+    else if (_size <= JODiagramTimeInterval.minute)
+      step = 5 * 1000;
+    else if (_size <= JODiagramTimeInterval.hour)
+      step = 5 * 60 * 1000;
+    else if (_size <= JODiagramTimeInterval.six_hours)
+      step = 30 * 60 * 1000;
+    else if (_size <= JODiagramTimeInterval.twelve_hours)
+      step = 30 * 60 * 1000;
+    else if (_size <= JODiagramTimeInterval.day)
+      step = 60 * 60 * 1000;
     else if (_size <= JODiagramTimeInterval.week) step = 1440 * 60 * 1000;
     // else if (_size <=  JODiagramTimeInterval.month) step = 1440 * 60 * 1000;
     // else if (_size <=  JODiagramTimeInterval.year) step = 31 * 1440 * 60 * 1000;
@@ -135,11 +145,13 @@ class JOChartController extends ChangeNotifier {
   String _mapTimeToPointLabel(int t, int step) {
     final date = DateTime.fromMillisecondsSinceEpoch(t);
     final formatted = DateFormat('dd.MM.yyyy kk:mm:ss.SSS').format(date).replaceFirst('24:00', '00:00');
-    if (step < JODiagramTimeInterval.second) return formatted.substring(20, 23);
-    else if (step < JODiagramTimeInterval.minute) return formatted.substring(17, 19);
-    else if (step < JODiagramTimeInterval.hour) return formatted.substring(11, 16);
-    else if (step >= JODiagramTimeInterval.hour && step < JODiagramTimeInterval.day) return formatted.substring(11);
-    elseif (step >= JODiagramTimeInterval.day) return formatted.substring(0, 2);
+    if (step < JODiagramTimeInterval.second)
+      return formatted.substring(20, 23);
+    else if (step < JODiagramTimeInterval.minute)
+      return formatted.substring(17, 19);
+    else if (step <= JODiagramTimeInterval.hour)
+      return formatted.substring(11, 16);
+    else if (step >= JODiagramTimeInterval.day) return formatted.substring(0, 2);
     return '';
   }
 
@@ -197,24 +209,28 @@ class JOChartController extends ChangeNotifier {
   }
 
   List<JODataPoint> _selectDataPointsForInterval() {
-    print('(TRACE) all datapoints: ${_allDatapoints.length}');
-    print('(TRACE) start: $_start, end: $_end, size: $_size');
+    // print('(TRACE) all datapoints: ${_allDatapoints.length}');
+    // print('(TRACE) start: $_start, end: $_end, size: $_size');
     List<JODataPoint> selected = _allDatapoints.where((m) => m.time >= _start && m.time <= _end).toList();
     // selected.forEach((d) => print('(TRACE) initially selected datapoints: ${d.time}, ${d.value}'));
     List<JODataPoint> elements = _buildFixedDataPoints();
     int step = _getStepSize();
     elements.forEach((d) {
       List<JODataPoint> inStep = selected.where((m) => d.time <= m.time && m.time <= d.time + step).toList();
-      print('(TRACE) Values in step: ${inStep.length}');
-      int value = 0;
+      // print('(TRACE) Values in step: ${inStep.length}');
+      double value = 0.0;
       inStep.forEach((m) => value += m.value);
-      if (value > 0) value = value ~/ inStep.length;
+      if (value > 0) value = value / inStep.length;
       d.value = value;
-      print('(TRACE) Datapoint in selected interval: ${DateTime.fromMillisecondsSinceEpoch(d.time)}, ${d.value}');
+      // print('(TRACE) Datapoint in selected interval: ${DateTime.fromMillisecondsSinceEpoch(d.time)}, ${d.value}');
     });
     _legend = _mapChartLegend();
-    print('(TRACE) selected datapoints for interval: ${elements.length}');
-    notifyListeners();
+    // print('(TRACE) selected datapoints for interval: ${elements.length}');
+    _hasChanged.add(true);
     return elements;
+  }
+
+  void dispose() {
+    _hasChanged.close();
   }
 }
