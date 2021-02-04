@@ -1,7 +1,8 @@
 name: jo_tb_fl_chart
 description: A custom wrapper around a FL line chart to allow time based swiping and interval size changes.
-version: 0.1.38
+version: 0.1.40
 homepage: http://www.jovisco.com
+repository: https://github.com/joheiss/jo_tb_fl_chart.git
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
